@@ -1,0 +1,10 @@
+  {
+        "first_name": "Princess",
+        "other_name": "Oghenerume",
+        "last_name": "Etowe",
+        "email": "princessetowe1@gmail.com",
+        "username": "rhumeh",
+        "password": "1234",
+        "phone_num": "09126858338",
+        "date_of_birth": "2004-09-27"
+    }
