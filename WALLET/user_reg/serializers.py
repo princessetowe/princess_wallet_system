@@ -27,17 +27,33 @@
 #         )
 #         return customer
 from rest_framework import serializers
-from .models import Customer
+from .models import Customer, Wallet
+from django.contrib.auth.models import User
+from django.db import transaction
 import requests
 
 class CustomerSerializer(serializers.ModelSerializer):
+    phone_num = serializers.CharField(required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+    profile_picture = serializers.ImageField(required=False)
     class Meta:
-        model = Customer
-        fields = '__all__'
+        model = User
+        fields = ['username', 'email', 'password', 'phone_num', 'date_of_birth', 'address', 'profile_picture']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        customer = Customer.objects.create(**validated_data)
-        customer.set_password(validated_data['password'])
-        customer.save()
-        return customer
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=validated_data['username'],
+                email=validated_data['email'],
+            )
+            customer=Customer.objects.create(user=user)
+        return user
+
+class WalletSerializer(serializers.ModelSerializer):
+    customer_username = serializers.CharField(source='customer.user.username', read_only=True)
+    class Meta:
+        model = Wallet
+        fields = '__all__'
+        read_only_fields = ['customer']

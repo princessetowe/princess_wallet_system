@@ -1,37 +1,60 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
-from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework import status, generics, permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from .models import Customer
-from .serializers import CustomerSerializer
-
+from .models import Customer, Wallet, Withdraw
+from .serializers import CustomerSerializer, WalletSerializer
+from withdraw.serializers import WithdrawSerializer
+from rest_framework.authtoken.models import Token
+from django.db import transaction
 # Create your views here.
-class SignUpAPIView(APIView):
+class SignUpAPIView(generics.CreateAPIView):
+    serializer_class = CustomerSerializer
     permission_classes = (AllowAny,)
-
-    def get(self, request, format=None):
-        customers = Customer.objects.all()
-        serializer = CustomerSerializer(customers, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, format=None):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            data = request.data
-            serializer = CustomerSerializer(data=data)
+            with transaction.atomic():
+                user = serializer.save()
+                customer = user.customer_profile
 
-            if serializer.is_valid(raise_exception=True):
-                email = data.get('email')
-                account_num = data.get('account_num')
-
-
-                if Customer.objects.filter(email__exact=email).exists():
-                    return Response({'error': 'Email already in use'}, status=status.HTTP_400_BAD_REQUEST)
-                elif Customer.objects.filter(account_num__exact=account_num).exists():
-                    return Response({'error': 'Account number already exists'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                else:
-                    serializer.save()
-                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                Wallet.objects.create(customer=customer, balance=0.00)
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({
+                    "message": "User registered successfully",
+                    "user":{
+                        "id":user.id,
+                        "username":user.username,
+                        "email":user.email,
+                    },
+                    "token": token.key,
+                }, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Registration failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+class WalletDetailView(generics.RetrieveAPIView):
+    serializer_class = WalletSerializer
+    permission_classes =(IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            customer = self.request.user.customer_profile
+            return Wallet.objects.get(customer=customer)
+        except (Customer.DoesNotExist, Wallet.DoesNotExist):
+            return Response({'detail': "Wallet not found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+class WithdrawHistoryView(generics.ListAPIView):
+    serializer_class = WithdrawSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        user = self.request.user
+        try:
+            customer = user.customer_profile
+            wallet = Wallet.objects.get(customer=customer)
+
+            return Withdraw.objects.filter(wallet=wallet).order_by('-time_made')
+        except (Customer.DoesNotExist, Wallet.DoesNotExist):
+            return Withdraw.objects.none()
+
