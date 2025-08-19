@@ -19,8 +19,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('signup/', include('user_reg.urls')),
-    path('login/', include('login.urls')),
-    path('withdraw/',include('withdraw.urls')),
-    path('deposit/', include('deposit.urls')),
+    path('user/', include('userreg.urls')),
+    path('wallet/', include('walletapp.urls')),
+    path('transact/', include('transactions.urls')),
 ]

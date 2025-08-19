@@ -1,0 +1,46 @@
+#sign up
+{
+  "username": "biola",
+  "email": "biola@gmail.com",
+  "password": "Pass123456$",
+  "first_name": "Biola",
+  "last_name": "Adewale",
+  "phone_num": "08123456789",
+  "date_of_birth": "1995-04-12",
+  "address": "12 Example Street, Lagos",
+  "profile_picture": null
+}
+
+#login
+{
+    "username": "biola",
+    "password" : "Pass123456$"
+}
+
+#uploadkyc use form-data
+{
+  "document_type": "passport",
+  "document_file": "base64string_or_file_upload",
+  "address_proof": "base64string_or_file_upload",
+  "location_verified": false
+}
+
+#verifykyc
+
+{
+  "status": "Verified"
+}
+
+{
+    "status": "Rejected"
+}
+
+#createadmin
+{
+  "username": "adminuser",
+  "email": "adminuser@example.com",
+  "password": "Pass123456$",
+  "first_name": "Sonia",
+  "last_name": "Damaris",
+  "role": "Manager"
+}

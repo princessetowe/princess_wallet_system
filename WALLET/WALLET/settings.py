@@ -38,12 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'djmoney',
-    'user_reg',
-    'login',
+    'userreg',
+    'walletapp',
+    'transactions',
     'rest_framework',
     'rest_framework.authtoken',
-    'withdraw',
-    'deposit',
     'allauth',
 ]
 
