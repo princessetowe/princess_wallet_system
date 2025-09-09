@@ -2,28 +2,62 @@ from rest_framework import serializers
 from .models import Customer, KYC, AdminProfile
 from django.contrib.auth.models import User
 from django.db import transaction
-
+import random
+import string
 class CustomerSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+
+    username = serializers.CharField(read_only=True) 
+
+
     phone_num = serializers.CharField(required=False, allow_blank=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     address = serializers.CharField(required=False, allow_blank=True)
     profile_picture = serializers.ImageField(required=False)
     class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'phone_num', 'date_of_birth', 'address', 'profile_picture', 'first_name', 'last_name']
+        model = Customer
+        fields = ['email', 'password', 'username','phone_num', 'date_of_birth', 'address', 'profile_picture', 'first_name', 'last_name']
         extra_kwargs = {'password': {'write_only': True}}
 
-    def create(self, validated_data):
+    def generate_unique_username(self, email):
+        base_username = email.split("@")[0]
+        while True:
+            random_digits = ''.join(random.choices(string.digits, k=4))
+            username = f"{base_username}{random_digits}"
+            if not User.objects.filter(username=username).exists():
+                return username
+
+    def validate(self, attrs):
+    
+        email = attrs.get("email")
+        if not email:
+            raise serializers.ValidationError({"email": "Email is required."})
+            
+        attrs['username'] = self.generate_unique_username(email)
+        return attrs
+
+    def create(self, validated_data, **kwargs):
         with transaction.atomic():
-            user = User.objects.create_user(
-                username=validated_data['username'],
-                email=validated_data['email'],
-                password=validated_data['password'],
-                first_name=validated_data['first_name'],
-                last_name=validated_data['last_name']
-            )
-            Customer.objects.create(user=user)
-        return user
+            user_data = {
+                'username': validated_data.pop('username'),
+                'email': validated_data.pop('email'),
+                'password': validated_data.pop('password'),
+                'first_name': validated_data.pop('first_name'),
+                'last_name': validated_data.pop('last_name'),
+            }
+            user = User.objects.create_user(**user_data)
+            customer_data = {
+                'user': user,
+                'phone_num': validated_data.pop('phone_num', ''),
+                'date_of_birth': validated_data.pop('date_of_birth', None),
+                'address': validated_data.pop('address', ''),
+                'profile_picture': validated_data.pop('profile_picture', None),
+            }
+            customer = Customer.objects.create(**customer_data)
+        return customer
 
 class KYCSerializer(serializers.ModelSerializer):
     class Meta:

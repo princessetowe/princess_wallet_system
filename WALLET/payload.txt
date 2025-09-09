@@ -44,3 +44,17 @@
   "last_name": "Damaris",
   "role": "Manager"
 }
+
+{
+  "event": "charge.success",
+  "data": {
+    "id": 13,
+    "status": "success",
+    "reference": "osuk6ncxj0",
+    "amount": 900,
+    "currency": "NGN",
+    "customer": {
+      "email": "biola@gmail.com"
+    }
+  }
+}
