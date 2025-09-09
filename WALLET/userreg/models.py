@@ -30,11 +30,12 @@ class KYC(models.Model):
     ]
 
     customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name="kyc")
-    document = models.FileField(upload_to="kyc_documents/", blank=True, null=True)
-    address = models.FileField(upload_to="kyc/address/", blank=True, null=True)
-    document_type = models.CharField(max_length=50, blank=True, null=True)
+    BVN = models.CharField(max_length=11, blank=True, null=True)
+    NIN = models.CharField(max_length=11, blank=True, null=True)
+    location_verified = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=VERIFICATION_STATUS, default="Pending")
     submitted_at = models.DateTimeField(default=timezone.now)
+
 
     def __str__(self):
         return f"KYC for {self.customer.user.username} - {self.status}"

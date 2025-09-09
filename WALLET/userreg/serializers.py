@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.db import transaction
 import random
 import string
+from django.conf import settings
+import requests
 class CustomerSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
@@ -68,14 +70,52 @@ class KYCSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context["request"]
         customer = Customer.objects.get(user=request.user)  
-        return KYC.objects.create(customer=customer, **validated_data)
 
+        kyc, created = KYC.objects.update_or_create(
+            customer=customer,
+            defaults=validated_data
+        )
+        return kyc
+    
+    def paystack_verified(self, id_type, value):
+        headers = {
+            "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+            "Content-Type": "application/json",
+        }
+        
+        if id_type == "BVN":
+            url = f"https://api.paystack.co/bank/validate/"
+
+        elif id_type == "NIN":
+            url = f"https://api.paystack.co/bank/validate/"
+        
+        else:
+            return None
+        
+        if id_type == "NIN":
+            response = requests.post(url, headers=headers, json={"nin": value})
+        else:
+            response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response.json()
+        return None
     def update(self, instance, validated_data):
         with transaction.atomic():
             kyc = super().update(instance, validated_data)
             wallet = kyc.customer.wallets.first()
 
-            if kyc.document_submitted and wallet.tier == "Lord":
+            if kyc.bvn:
+                bvn_resp = self.paystack_verified("bvn", kyc.bvn)
+                if not bvn_resp:
+                    raise serializers.ValidationError({"bvn": "Invalid BVN or verification failed"})
+
+            if kyc.nin:
+                nin_resp = self.paystack_verified("nin", kyc.nin)
+                if not nin_resp:
+                    raise serializers.ValidationError({"nin": "Invalid NIN or verification failed"})
+
+            if kyc.bvn and kyc.nin and wallet.tier == "Lord":
                 wallet.tier = "Prince"
                 wallet.save()
 

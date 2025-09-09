@@ -2,7 +2,7 @@ from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from .models import KYC, AdminProfile
+from .models import KYC, AdminProfile, Customer
 from walletapp.models import Wallet
 from .serializers import CustomerSerializer, LoginSerializer, KYCSerializer, AdminProfileSerializer, KYCVerifySerializer
 from rest_framework.authtoken.models import Token
@@ -89,7 +89,13 @@ class KYCUploadView(generics.CreateAPIView):
    permission_classes = [IsAuthenticated]
 
    def post(self, request, *args, **kwargs):
-        serializer = KYCSerializer(data=request.data, context={"request": request})
+        customer = Customer.objects.get(user=request.user)
+        try:
+            kyc = KYC.objects.get(customer=customer)
+            serializer = KYCSerializer(data=request.data, context={"request": request})
+        except KYC.DoesNotExist:
+            serializer = KYCSerializer(data=request.data, context={"request": request})
+            
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "KYC submitted successfully", "data": serializer.data}, status=201)
