@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from .models import KYC, AdminProfile, Customer
 from walletapp.models import Wallet
-from .serializers import CustomerSerializer, LoginSerializer, KYCSerializer, AdminProfileSerializer, KYCVerifySerializer
+from .serializers import CustomerSerializer, LoginSerializer, KYCSerializer, AdminProfileSerializer
 from rest_framework.authtoken.models import Token
 from django.db import transaction
 from django.contrib.auth import authenticate
@@ -89,62 +89,57 @@ class KYCUploadView(generics.CreateAPIView):
    permission_classes = [IsAuthenticated]
 
    def post(self, request, *args, **kwargs):
-        customer = Customer.objects.get(user=request.user)
-        try:
-            kyc = KYC.objects.get(customer=customer)
-            serializer = KYCSerializer(data=request.data, context={"request": request})
-        except KYC.DoesNotExist:
-            serializer = KYCSerializer(data=request.data, context={"request": request})
-            
+        serializer = KYCSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "KYC submitted successfully", "data": serializer.data}, status=201)
+            kyc = serializer.save()
+            wallet = kyc.customer.wallets.first()
+            return Response(
+                {
+                    "message": f"KYC {kyc.status}",
+                    "tier": wallet.tier if wallet else "No Wallet",
+                    "data": KYCSerializer(kyc).data
+                },
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=400)
    
 class KYCVerifyView(generics.UpdateAPIView):
     queryset = KYC.objects.all()
-    serializer_class=KYCVerifySerializer
+    serializer_class = KYCSerializer
     permission_classes = (IsAdminUser,)
 
-    def update(self, request, *args, **kwargs):
-        kyc = self.get_object()
-        serializer = self.get_serializer(kyc, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-
-        kyc.status = serializer.validated_data.get("status", kyc.status)
-        wallet = Wallet.objects.filter(customer=kyc.customer).first()
-
-        if kyc.status == "Verified":
-            kyc.customer.is_verified = True
-
-            if wallet:
-                if kyc.document and not kyc.address:
-                    wallet.tier="Prince"
-                elif kyc.document and kyc.address:
-
-                    wallet.tier = 'King'
-                else:
-                    wallet.tier = 'Lord'
-                wallet.save()
-
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.bvn_verified and instance.nin_verified and instance.location_verified:
+            instance.status = "Verified"
         else:
-            kyc.customer.is_verified = False
-            if wallet:
-                wallet.tier = "Lord"
-                wallet.save()
-        kyc.customer.save()
+            instance.status = "Pending"
+        instance.save()
 
-        kyc.save()
+class WalletUpgradeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        return Response(
-            {
-                "detail": f"KYC {kyc.status}",
-                "level": wallet.tier if wallet else None,
-                "customer": kyc.customer.user.email
-            },
-            status=status.HTTP_200_OK
-        )
-    
+    def post(self, request, *args, **kwargs):
+        customer = request.user.customer
+        wallet = customer.wallets.first()
+        kyc = customer.kyc
+
+        if kyc.status != "Verified":
+            return Response({"detail": "KYC must be verified before upgrade."}, status=400)
+
+        upgrade_to = request.data.get("upgrade_to")
+
+        if wallet.level == "Lord" and upgrade_to == "Prince":
+            wallet.level = "Prince"
+        elif wallet.level == "Prince" and upgrade_to == "King":
+            wallet.level = "King"
+        else:
+            return Response({"detail": "Invalid upgrade path."}, status=400)
+
+        wallet.save()
+        return Response({"detail": f"Wallet upgraded to {wallet.level}"})
+
+
 class AdminProfileView(generics.RetrieveUpdateDestroyAPIView):
     queryset = AdminProfile.objects.all()
     serializer_class = AdminProfileSerializer

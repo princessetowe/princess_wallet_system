@@ -6,6 +6,7 @@ from django_countries.fields import CountryField
 from datetime import timedelta
 import uuid
 
+
 User = get_user_model()
 
 class Customer(models.Model):
@@ -30,8 +31,8 @@ class KYC(models.Model):
     ]
 
     customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name="kyc")
-    BVN = models.CharField(max_length=11, blank=True, null=True)
-    NIN = models.CharField(max_length=11, blank=True, null=True)
+    bvn_verified = models.BooleanField(default=False)
+    nin_verified = models.BooleanField(default=False)
     location_verified = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=VERIFICATION_STATUS, default="Pending")
     submitted_at = models.DateTimeField(default=timezone.now)
@@ -39,6 +40,27 @@ class KYC(models.Model):
 
     def __str__(self):
         return f"KYC for {self.customer.user.username} - {self.status}"
+    
+    
+    def auto_upgrade(self):
+        from walletapp.models import Wallet
+        wallet = getattr(self.customer, "wallet", None)
+        if not wallet:
+            wallet = Wallet.objects.create(customer=self.customer, tier="Lord")
+
+        if self.bvn_verified and self.nin_verified and self.location_verified:
+            self.status = "Verified"
+            wallet.tier = "King"
+        elif (self.bvn_verified or self.nin_verified) and self.location_verified:
+            self.status = "Verified"
+            wallet.tier = "Prince"
+        else:
+            self.status = "Pending"
+            wallet.tier = "Lord"
+
+        self.save()
+        wallet.save()
+        self.customer.save()
 
 class AdminProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='admin_profile')
