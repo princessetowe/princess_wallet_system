@@ -5,12 +5,21 @@ from userreg.models import Customer
 import requests
 from decimal import Decimal
 from django.conf import settings
+from django.utils import timezone
+import string
+import secrets
 
 class TransactionSerializer(serializers.ModelSerializer):
     kyc_status = serializers.CharField(source="kyc.verification_status", read_only=True)
     class Meta:
         model = Transactions
         fields = '__all__'
+
+
+def generate_reference(length=10):
+    chars = string.ascii_lowercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(length))
+
 
 class WithdrawSerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,42 +64,23 @@ class WithdrawSerializer(serializers.ModelSerializer):
         customer = validated_data.get("customer")
         amount = validated_data.get("amount")
 
+        wallet.balance -= amount
+        wallet.save()
 
-        url = 'https://api.paystack.co/transaction/initialize'
-
-        headers = {
-            "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
-            "Content-Type": "application/json",
-            }
-        
-        data = {
-            "email": customer.user.email,
-            "amount": int(amount * 100),
-            "currency": wallet.currency,
-        }
-        r = requests.post(url, headers=headers, json=data)
-        response = r.json()
-        if not response.get("status"):
-            raise serializers.ValidationError({"paystack": "Failed to initialize withdrawal"})
-        # wallet.balance -= amount
-        # wallet.save()
-
-        paystack_data = response["data"]
+        reference = generate_reference()
 
         transaction = Transactions.objects.create(
             user=customer,
             wallet=wallet,
             amount=amount,
             transaction_type="Withdrawal",
-            status="Processing",
+            status="Success",
             currency=wallet.currency,
-            reference=paystack_data["reference"],
+            reference=reference,
         )
-        transaction.payment_url = response["data"]["authorization_url"]
         return {
             "transaction_id": transaction.id,
-            "reference": paystack_data["reference"],
-            "authorization_url": paystack_data["authorization_url"],
+            "reference": transaction.reference,
             "amount": str(transaction.amount),
             "currency": transaction.currency,
             "status": transaction.status,

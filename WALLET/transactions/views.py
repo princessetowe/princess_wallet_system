@@ -19,7 +19,7 @@ class WithdrawCreateView(APIView):
           
         return Response(
             {
-                "message": f"Withdrawal initiated",
+                "message": f"Success",
                 **transaction
             },
             status=status.HTTP_201_CREATED
@@ -52,15 +52,6 @@ class TransactionsView(generics.ListAPIView):
             customer = user.customer_profile
             wallet = Wallet.objects.get(customer=customer)
 
-            url = 'https://api.paystack.co/transaction/initialize'
-
-            headers = {
-                "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
-                "Content-Type": "application/json",
-            }
-            r = requests.post(url, headers=headers)
-            response = r.json()
-            return response
             return Transactions.objects.filter(wallet=wallet).order_by('-created_at')
         except (Customer.DoesNotExist, Wallet.DoesNotExist):
             return Transactions.objects.none()
