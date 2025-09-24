@@ -54,6 +54,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'signup': '10/day',
+        'login': '5/minute',
+    },
+    'EXCEPTION_HANDLER': 'rest_framework.views.custom_exception_handler',
 }
 
 MIDDLEWARE = [

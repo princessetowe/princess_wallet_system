@@ -13,9 +13,11 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from .models import EmailVerificationToken
+from .throttle import SignUpThrottle, LoginThrottle
 class SignUpAPIView(generics.CreateAPIView):
     serializer_class = CustomerSerializer
     permission_classes = (AllowAny,)
+    throttle_classes = (SignUpThrottle,)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -55,6 +57,7 @@ class SignUpAPIView(generics.CreateAPIView):
 
 class LoginAPIView(APIView):
     permission_classes = (AllowAny,)
+    throttle_classes = (LoginThrottle,)
 
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
