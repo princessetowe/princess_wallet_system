@@ -22,10 +22,17 @@ class CustomerSerializer(serializers.ModelSerializer):
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     address = serializers.CharField(required=False, allow_blank=True)
     profile_picture = serializers.ImageField(required=False)
+    profile_picture_url = serializers.SerializerMethodField()
     class Meta:
         model = Customer
-        fields = ['email', 'password', 'username','phone_num', 'date_of_birth', 'address', 'profile_picture', 'first_name', 'last_name']
+        fields = ['email', 'password', 'username','phone_num', 'date_of_birth', 'address', 'profile_picture', 'first_name', 'last_name', 'profile_picture_url']
         extra_kwargs = {'password': {'write_only': True}}
+
+    def get_profile_picture_url(self, obj):
+        if obj.profile_picture:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.profile_picture.url)
+        return None
 
     def generate_unique_username(self, email):
         base_username = email.split("@")[0]
