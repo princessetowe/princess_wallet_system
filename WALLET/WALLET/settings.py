@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-aj*68*d9x2^(spv$8tn$7c)i4z!0*b%^0745rxeblu-&k&srft
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -54,6 +54,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'signup': '10/day',
+        'login': '5/minute',
+    },
+    'EXCEPTION_HANDLER': 'rest_framework.views.custom_exception_handler',
 }
 
 MIDDLEWARE = [
@@ -151,3 +160,10 @@ ACCOUNT_SIGNUP_FIELDS = []
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = "noreply@wallet.com"
+
+
+PAYSTACK_SECRET_KEY = "sk_test_4fdffd44fc0de0e9125dca99c4f7354ca0a35037"

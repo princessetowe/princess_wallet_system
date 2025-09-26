@@ -19,10 +19,8 @@ class WithdrawCreateView(APIView):
           
         return Response(
             {
-                "message": f"Withdrawal of {transaction.amount} {transaction.currency} initiated successfully.",
-                "transaction_id": transaction.id,
-                "new_balance": transaction.wallet.balance,
-                "status": transaction.status,
+                "message": f"Success",
+                **transaction
             },
             status=status.HTTP_201_CREATED
         )
@@ -38,12 +36,27 @@ class DepositCreateView(APIView):
     
         return Response(
             {
-                "message": f"Deposit of {transaction.amount} {transaction.currency} successful.",
-                "transaction_id": transaction.id,
-                "balance": transaction.wallet.balance,
-                "wallet_tier": transaction.wallet.tier,
+                "message": "Deposit initialized.",
+                **transaction
             },
             status=status.HTTP_200_OK
+        )
+    
+class TransferCreateView(APIView):
+    serializer_class = TransferSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={"request":request})
+        serializer.is_valid(raise_exception=True)
+        transaction = serializer.save()
+
+        return Response(
+            {
+                "message":f"Success",
+                **transaction
+            },
+            status=status.HTTP_201_CREATED
         )
     
 class TransactionsView(generics.ListAPIView):
