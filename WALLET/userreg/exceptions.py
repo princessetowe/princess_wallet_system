@@ -12,8 +12,7 @@ def custom_exception_handler(exc, context):
 
         detail = {
             'error': 'Too many requests',
-            'message': f'You have exceeded the rate limit for {scope_name}. Please try again later.',
-            'try_after': f'{exc.wait} seconds' 
+            'message': f'You have exceeded the rate limit for {scope_name}. Please try again in {exc.wait} seconds.'
         }
 
         return Response(detail, status=status.HTTP_429_TOO_MANY_REQUESTS)
