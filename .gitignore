@@ -213,3 +213,5 @@ __marimo__/
 *.tiff
 *.webp
 *.svg
+
+**payload.txt
