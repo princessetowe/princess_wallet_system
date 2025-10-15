@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
+from decouple import config
 
 from pathlib import Path
 
@@ -166,4 +167,4 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@wallet.com"
 
 
-PAYSTACK_SECRET_KEY = "sk_test_4fdffd44fc0de0e9125dca99c4f7354ca0a35037"
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
