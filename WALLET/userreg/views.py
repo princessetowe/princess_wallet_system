@@ -14,6 +14,8 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from .models import EmailVerificationToken
 from .throttle import SignUpThrottle, LoginThrottle
+from rest_framework_simplejwt.tokens import RefreshToken
+
 class SignUpAPIView(generics.CreateAPIView):
     serializer_class = CustomerSerializer
     permission_classes = (AllowAny,)
@@ -71,21 +73,31 @@ class LoginAPIView(APIView):
         if user is not None:
             if not user.is_active or not user.customer_profile.is_verified:
                 return Response({"detail": "Please verify your email before logging in."},status=status.HTTP_400_BAD_REQUEST)
-            
-            token, created = Token.objects.get_or_create(user=user)
+
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)            
             return Response({
                 "message": "Login successful",
                 "user_id": user.id,
                 "email": user.email,
-                "token": token.key,
+                "token": {
+                "access":access_token,
+                "refresh":str(refresh)
+            },
             }, status=status.HTTP_200_OK)
         else:
             return Response({"detail":"Invalid Credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
-        if request.auth:
-            request.auth.delete()
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except:
+            return Response({"error": "Not logged in"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
     
 class KYCUploadView(generics.CreateAPIView):
