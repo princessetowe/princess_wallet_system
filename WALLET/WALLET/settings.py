@@ -60,10 +60,12 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/day',
+        'anon': '100/hour',
         'signup': '10/day',
         'login': '5/minute',
     },
-    'EXCEPTION_HANDLER': 'rest_framework.views.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'userreg.exceptions.custom_exception_handler',
 }
 
 MIDDLEWARE = [
