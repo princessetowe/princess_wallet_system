@@ -7,10 +7,12 @@ from .serializers import  *
 from django.db import transaction
 from rest_framework.exceptions import NotFound
 from rest_framework import generics, status, permissions
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class WalletDetailView(generics.RetrieveAPIView):
     serializer_class = WalletSerializer
     permission_classes =(IsAuthenticated,)
+    authentication_classes = [JWTAuthentication]
 
     def get_object(self):
         try:
@@ -21,6 +23,7 @@ class WalletDetailView(generics.RetrieveAPIView):
 
 class WalletUpgradeView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def post(self, request, *args, **kwargs):
         tier = request.data.get("tier")

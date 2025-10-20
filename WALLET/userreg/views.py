@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404
 from .models import EmailVerificationToken
 from .throttle import SignUpThrottle, LoginThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class SignUpAPIView(generics.CreateAPIView):
     serializer_class = CustomerSerializer
@@ -60,6 +61,7 @@ class SignUpAPIView(generics.CreateAPIView):
 class LoginAPIView(APIView):
     permission_classes = (AllowAny,)
     throttle_classes = (LoginThrottle,)
+    authentication_classes = []
 
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
@@ -90,8 +92,12 @@ class LoginAPIView(APIView):
 
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request, *args, **kwargs):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"error":"Refresh token is required"})
+        
         try:
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
@@ -102,6 +108,7 @@ class LogoutAPIView(APIView):
     
 class KYCUploadView(generics.CreateAPIView):
    permission_classes = [IsAuthenticated]
+   authentication_classes = [JWTAuthentication]
 
    def post(self, request, *args, **kwargs):
         serializer = KYCSerializer(data=request.data, context={"request": request})
@@ -122,6 +129,7 @@ class KYCVerifyView(generics.UpdateAPIView):
     queryset = KYC.objects.all()
     serializer_class = KYCSerializer
     permission_classes = (IsAdminUser,)
+    authentication_classes = [JWTAuthentication]
 
     def perform_update(self, serializer):
         instance = serializer.save()
@@ -133,6 +141,7 @@ class KYCVerifyView(generics.UpdateAPIView):
 
 class WalletUpgradeAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes =[JWTAuthentication]
 
     def post(self, request, *args, **kwargs):
         customer = request.user.customer
@@ -159,12 +168,14 @@ class AdminProfileView(generics.RetrieveUpdateDestroyAPIView):
     queryset = AdminProfile.objects.all()
     serializer_class = AdminProfileSerializer
     permission_classes = (IsAdminUser,)
+    authentication_classes = [JWTAuthentication]
     lookup_field = 'pk'
     
 class AdminProfileCreateView(generics.CreateAPIView):
     queryset = AdminProfile.objects.all()
     serializer_class = AdminProfileSerializer
     permission_classes = (IsAdminUser,)
+    authentication_classes = [JWTAuthentication]
 
     def perform_create(self, serializer):
         if not self.request.user.is_superuser:

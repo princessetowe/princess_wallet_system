@@ -7,10 +7,12 @@ from .serializers import  *
 from django.db import transaction
 from rest_framework.exceptions import NotFound
 from rest_framework import generics, status, permissions
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class WithdrawCreateView(APIView):
     serializer_class = WithdrawSerializer
     permission_classes = (IsAuthenticated,)
+    authentication_classes = [JWTAuthentication]
     
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data,context={"request":request})
@@ -28,6 +30,7 @@ class WithdrawCreateView(APIView):
 class DepositCreateView(APIView):
     serializer_class = DepositSerializer
     permission_classes = (IsAuthenticated,)
+    authentication_classes = [JWTAuthentication]
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={"request":request})
@@ -45,6 +48,7 @@ class DepositCreateView(APIView):
 class TransferCreateView(APIView):
     serializer_class = TransferSerializer
     permission_classes = (IsAuthenticated,)
+    authentication_classes = [JWTAuthentication]
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={"request":request})
@@ -62,6 +66,7 @@ class TransferCreateView(APIView):
 class TransactionsView(generics.ListAPIView):
     serializer_class = TransactionSerializer
     permission_classes = (IsAuthenticated,)
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         user = self.request.user
