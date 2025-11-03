@@ -11,4 +11,5 @@ urlpatterns = [
     path('adminprofile/', AdminProfileView.as_view(), name='admin-profile'),
     path('createadmin/', AdminProfileCreateView.as_view(), name="admin-profile-create"),
     path('verify-email/<str:token>/', VerifyEmailAPIView.as_view()),
+    path('admin/login/', AdminLogin.as_view(), name='admin-login'),
 ]

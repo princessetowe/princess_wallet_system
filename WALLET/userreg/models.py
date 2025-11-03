@@ -12,7 +12,7 @@ User = get_user_model()
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer_profile')
     phone_num = models.CharField(max_length=20, default='0987777776')
-    date_of_birth = models.DateField(default='2004-11-10')
+    date_of_birth = models.DateField(default='2004-11-10', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     country = CountryField(blank=True, null=True)
     profile_picture = models.ImageField(upload_to='customer_profiles/', blank=True, null=True)

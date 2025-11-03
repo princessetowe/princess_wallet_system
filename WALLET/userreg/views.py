@@ -17,6 +17,7 @@ from .throttle import SignUpThrottle, LoginThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+
 class SignUpAPIView(generics.CreateAPIView):
     serializer_class = CustomerSerializer
     permission_classes = (AllowAny,)
@@ -144,10 +145,13 @@ class WalletUpgradeAPIView(APIView):
     authentication_classes =[JWTAuthentication]
 
     def post(self, request, *args, **kwargs):
-        customer = request.user.customer
+        customer = request.user.customer_profile
         wallet = customer.wallets.first()
         kyc = customer.kyc
 
+        if not kyc:
+            print("greet")
+            return Response({"detail": "KYC not found."}, status=400)
         if kyc.status != "Verified":
             return Response({"detail": "KYC must be verified before upgrade."}, status=400)
 
@@ -182,6 +186,34 @@ class AdminProfileCreateView(generics.CreateAPIView):
             raise PermissionDenied("Only super admins can create new admin accounts.")
         serializer.save()
 
+class AdminLogin(generics.CreateAPIView):
+    serializer_class = LoginSerializer
+    permission_classes = (AllowAny,)
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None and hasattr(user, 'admin_profile'):
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)            
+            return Response({
+                "message": "Admin login successful",
+                "user_id": user.id,
+                "email": user.email,
+                "token": {
+                "access":access_token,
+                "refresh":str(refresh)
+            },
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail":"Invalid Admin Credentials"}, status=status.HTTP_400_BAD_REQUEST)
 class VerifyEmailAPIView(APIView):
     permission_classes = (AllowAny,)
 
