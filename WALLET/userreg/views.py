@@ -140,34 +140,6 @@ class KYCVerifyView(generics.UpdateAPIView):
             instance.status = "Pending"
         instance.save()
 
-class WalletUpgradeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes =[JWTAuthentication]
-
-    def post(self, request, *args, **kwargs):
-        customer = request.user.customer_profile
-        wallet = customer.wallets.first()
-        kyc = customer.kyc
-
-        if not kyc:
-            print("greet")
-            return Response({"detail": "KYC not found."}, status=400)
-        if kyc.status != "Verified":
-            return Response({"detail": "KYC must be verified before upgrade."}, status=400)
-
-        upgrade_to = request.data.get("upgrade_to")
-
-        if wallet.level == "Lord" and upgrade_to == "Prince":
-            wallet.level = "Prince"
-        elif wallet.level == "Prince" and upgrade_to == "King":
-            wallet.level = "King"
-        else:
-            return Response({"detail": "Invalid upgrade path."}, status=400)
-
-        wallet.save()
-        return Response({"detail": f"Wallet upgraded to {wallet.level}"})
-
-
 class AdminProfileView(generics.RetrieveUpdateDestroyAPIView):
     queryset = AdminProfile.objects.all()
     serializer_class = AdminProfileSerializer
